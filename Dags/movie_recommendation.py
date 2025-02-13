@@ -21,3 +21,13 @@ upload_task = PythonOperator(
     python_callable=upload_to_s3,
     dag=dag,
 )
+
+# Task 2: Preprocess data
+preprocess_task = PythonOperator(
+    task_id='preprocess_data',
+    python_callable=preprocess_data,
+    dag=dag,
+)
+
+# Define task dependencies
+upload_task >> preprocess_task
