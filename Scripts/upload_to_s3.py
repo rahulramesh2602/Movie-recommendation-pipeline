@@ -29,7 +29,3 @@ def upload_to_s3():
 
     except Exception as e:
         print(f"Error uploading files to S3: {e}")
-
-
-if __name__ == "__main__":
-    upload_to_s3()
