@@ -1,11 +1,12 @@
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python_operator import PythonOperator  # type: ignore
 from datetime import datetime
 import sys
 import os
+
 # Import functions from the Scripts module
-from upload_to_s3 import upload_to_s3
-from preprocess_data import preprocess_data
+from upload_to_s3 import upload_to_s3  # type: ignore
+from preprocess_data import preprocess_data  # type: ignore
 
 # Ensure the Scripts directory is in the Python module path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../Scripts")))
@@ -14,8 +15,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../Scri
 dag = DAG(
     "movie_recommendation_pipeline",
     description="A pipeline to process movie data and generate recommendations",
-    schedule_interval=None,  # Run when triggered manually
-    start_date=datetime(2025, 1, 1), #Just for reference
+    schedule_interval=None,
+    start_date=datetime(2025, 1, 1),
     catchup=False,
 )
 
