@@ -1,6 +1,5 @@
 # Importing all libraries
 import boto3
-import os
 
 
 def upload_to_s3():
