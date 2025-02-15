@@ -1,20 +1,21 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
+import sys
+import os
+# Import functions from the Scripts module
+from upload_to_s3 import upload_to_s3
+from preprocess_data import preprocess_data
 
-
-def upload_to_s3():
-    from Scripts.upload_to_s3 import upload_to_s3 as upload
-
-    upload()
-
+# Ensure the Scripts directory is in the Python module path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../Scripts")))
 
 # Define the DAG
 dag = DAG(
     "movie_recommendation_pipeline",
     description="A pipeline to process movie data and generate recommendations",
-    schedule_interval="@daily",  # Run daily
-    start_date=datetime(2023, 10, 1),
+    schedule_interval=None,  # Run when triggered manually
+    start_date=datetime(2025, 1, 1), #Just for reference
     catchup=False,
 )
 
