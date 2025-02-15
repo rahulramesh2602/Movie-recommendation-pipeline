@@ -1,7 +1,7 @@
 import boto3
 import pandas as pd
 import io
-import os
+
 
 def preprocess_data():
     try:
@@ -54,7 +54,9 @@ def preprocess_data():
         print("✅ Successfully saved preprocessed data locally.")
 
         # Upload the preprocessed data back to S3
-        print(f"🔄 Uploading processed data to s3://{bucket_name}/{preprocessed_key}...")
+        print(
+            f"🔄 Uploading processed data to s3://{bucket_name}/{preprocessed_key}..."
+        )
         s3.upload_file(local_preprocessed_path, bucket_name, preprocessed_key)
         print(f"✅ Preprocessed data uploaded to s3://{bucket_name}/{preprocessed_key}")
 
