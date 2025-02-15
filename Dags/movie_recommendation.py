@@ -1,13 +1,15 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
+import sys
+import os
 
+# Ensure the Scripts directory is in the Python module path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../Scripts")))
 
-def upload_to_s3():
-    from Scripts.upload_to_s3 import upload_to_s3 as upload
-
-    upload()
-
+# Import functions from the Scripts module
+from upload_to_s3 import upload_to_s3
+from preprocess_data import preprocess_data
 
 # Define the DAG
 dag = DAG(
