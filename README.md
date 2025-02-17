@@ -1,5 +1,3 @@
-Got it! Since your **models folder** is inside the **Scripts folder**, I'll update the **README.md** to reflect this correctly. Here’s the updated version:
-
 ---
 
 ### **📄 README.md**
