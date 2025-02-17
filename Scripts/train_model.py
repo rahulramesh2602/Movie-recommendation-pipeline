@@ -1,35 +1,42 @@
 import pandas as pd
 import numpy as np
 import pickle
+import boto3
+import io
 from scipy.sparse.linalg import svds
 from scipy.sparse import csr_matrix
 
+# Define S3 bucket and file path
+BUCKET_NAME = "rahul-movie-recommendation-data"  # Replace with your S3 bucket name
+PREPROCESSED_DATA_KEY = "processed/preprocessed_data.csv"  # S3 key for processed data
 
-def preprocess_data(movies_path, ratings_path):
+
+def load_data_from_s3():
     """
-    Loads and preprocesses the data by merging movies and ratings datasets.
+    Loads the preprocessed dataset from S3.
     """
-    print("🔄 Loading datasets...")
+    print(f"🔄 Downloading {PREPROCESSED_DATA_KEY} from S3...")
+    s3 = boto3.client("s3")
 
-    # Load data
-    movies_df = pd.read_csv(movies_path)
-    ratings_df = pd.read_csv(ratings_path)
-
-    # Merge movies and ratings
-    merged_df = pd.merge(ratings_df, movies_df, on="movieId")
-
-    # Drop unnecessary columns
-    merged_df = merged_df[["userId", "movieId", "rating"]]
-
-    print(f"✅ Data preprocessing complete! {merged_df.shape[0]} ratings loaded.")
-
-    return merged_df
+    try:
+        obj = s3.get_object(Bucket=BUCKET_NAME, Key=PREPROCESSED_DATA_KEY)
+        df = pd.read_csv(io.BytesIO(obj["Body"].read()))
+        print("✅ Successfully downloaded preprocessed data from S3.")
+        return df
+    except Exception as e:
+        print(f"❌ Error: Could not download preprocessed data from S3: {e}")
+        return None
 
 
-def train_svd_model(data):
+def train_svd_model():
     """
     Trains an SVD recommendation model using Scipy's `svds`.
     """
+    data = load_data_from_s3()
+    if data is None:
+        print("❌ Exiting: Failed to load data from S3.")
+        return
+
     print("🚀 Training SVD model...")
 
     # Create user-movie matrix
@@ -63,33 +70,44 @@ def train_svd_model(data):
 
     print("✅ Model training complete!")
 
+    # Save trained model
+    save_model(predicted_df)
+
     return predicted_df
 
 
-def save_model(model, model_path):
+def save_model(model):
     """
     Saves the trained SVD model for future use.
     """
+    model_path = "models/svd_recommender.pkl"
+
     import os
 
-    # Ensure the models directory exists
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-    # Save the model
     with open(model_path, "wb") as model_file:
         pickle.dump(model, model_file)
 
     print(f"💾 Model saved to {model_path}")
 
 
-def recommend_movies(predicted_df, data, user_id, n_recommendations=5):
+def recommend_movies(user_id=1, n_recommendations=5):
     """
     Generates top movie recommendations for a given user using SVD predictions.
     """
     print(f"🔎 Generating recommendations for User {user_id}...")
 
-    # Get movie titles
-    movies_df = pd.read_csv(movies_path)
+    # Load the trained model
+    model_path = "models/svd_recommender.pkl"
+    with open(model_path, "rb") as model_file:
+        predicted_df = pickle.load(model_file)
+
+    # Load dataset again (as we need movie titles)
+    data = load_data_from_s3()
+    if data is None:
+        print("❌ Error: Could not load preprocessed data for recommendations.")
+        return
 
     # Get predicted ratings for the user
     user_predictions = predicted_df.loc[user_id].sort_values(ascending=False)
@@ -103,32 +121,12 @@ def recommend_movies(predicted_df, data, user_id, n_recommendations=5):
     ].head(n_recommendations)
 
     # Get movie titles
-    recommended_movies = movies_df[movies_df["movieId"].isin(unseen_movies.index)][
+    recommended_movies = data[data["movieId"].isin(unseen_movies.index)][
         ["movieId", "title"]
-    ]
+    ].drop_duplicates()
 
     print("🎬 Top recommended movies:")
     for index, row in recommended_movies.iterrows():
         print(f"🎥 {row['title']} (Movie ID: {row['movieId']})")
 
     return recommended_movies
-
-
-if __name__ == "__main__":
-    # File paths
-    movies_path = "Dataset/movies.csv"
-    ratings_path = "Dataset/ratings.csv"
-    model_path = "models/svd_recommender.pkl"
-
-    # Preprocess data
-    data = preprocess_data(movies_path, ratings_path)
-
-    # Train model
-    svd_model = train_svd_model(data)
-
-    # Save model
-    save_model(svd_model, model_path)
-
-    # Generate recommendations for a sample user
-    sample_user_id = 1
-    recommend_movies(svd_model, data, sample_user_id)
