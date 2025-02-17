@@ -1,47 +1,60 @@
+# Importing all libraries
 import boto3
 import pandas as pd
 import io
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def preprocess_data():
+    """
+    Downloads raw movie and rating datasets from S3,
+    merges them and processes missing values,
+    and uploads the preprocessed dataset back to S3.
+
+    Raises:
+        Exception: If any step in the process fails.
+    """
     try:
         # Initialize the S3 client
         s3 = boto3.client("s3")
 
-        # Define the S3 bucket name
-        bucket_name = "rahul-movie-recommendation-data"  # Replace with your S3 bucket
+        # Define S3 bucket name
+        bucket_name = "rahul-movie-recommendation-data"  # Update with you bucket name
 
-        # Define the S3 keys for raw data
+        # Define S3 keys for raw and processed data
         raw_movies_key = "raw/movies.csv"
         raw_ratings_key = "raw/ratings.csv"
-
-        # Define the S3 key for the processed data
         preprocessed_key = "processed/preprocessed_data.csv"
 
-        print("✅ Starting data preprocessing...")
+        logging.info("Starting data preprocessing...")
 
         # Download movies.csv from S3
-        print(f"🔄 Downloading {raw_movies_key} from S3...")
         try:
+            logging.info(f"Downloading {raw_movies_key} from S3...")
             movies_obj = s3.get_object(Bucket=bucket_name, Key=raw_movies_key)
             movies_df = pd.read_csv(io.BytesIO(movies_obj["Body"].read()))
-            print("✅ Successfully downloaded movies.csv")
+            logging.info("Successfully downloaded movies.csv")
         except Exception as e:
-            print(f"❌ Error: Could not download movies.csv: {e}")
-            return
+            logging.error(f"Error: Could not download movies.csv: {e}")
+            raise
 
         # Download ratings.csv from S3
-        print(f"🔄 Downloading {raw_ratings_key} from S3...")
         try:
+            logging.info(f"Downloading {raw_ratings_key} from S3...")
             ratings_obj = s3.get_object(Bucket=bucket_name, Key=raw_ratings_key)
             ratings_df = pd.read_csv(io.BytesIO(ratings_obj["Body"].read()))
-            print("✅ Successfully downloaded ratings.csv")
+            logging.info("Successfully downloaded ratings.csv")
         except Exception as e:
-            print(f"❌ Error: Could not download ratings.csv: {e}")
-            return
+            logging.error(f"Error: Could not download ratings.csv: {e}")
+            raise
 
         # Merge movies and ratings data
-        print("🔄 Merging datasets...")
+        logging.info("Merging datasets...")
         merged_df = pd.merge(ratings_df, movies_df, on="movieId")
 
         # Handle missing values
@@ -49,16 +62,19 @@ def preprocess_data():
 
         # Save preprocessed data to a temporary directory
         local_preprocessed_path = "/tmp/preprocessed_data.csv"
-        print(f"🔄 Saving preprocessed data to {local_preprocessed_path}...")
+        logging.info(f"Saving preprocessed data to {local_preprocessed_path}...")
         merged_df.to_csv(local_preprocessed_path, index=False)
-        print("✅ Successfully saved preprocessed data locally.")
+        logging.info("Successfully saved preprocessed data locally.")
 
         # Upload the preprocessed data back to S3
-        print(
-            f"🔄 Uploading processed data to s3://{bucket_name}/{preprocessed_key}..."
+        logging.info(
+            f"Uploading processed data to s3://{bucket_name}/{preprocessed_key}..."
         )
         s3.upload_file(local_preprocessed_path, bucket_name, preprocessed_key)
-        print(f"✅ Preprocessed data uploaded to s3://{bucket_name}/{preprocessed_key}")
+        logging.info(
+            f"Preprocessed data uploaded to s3://{bucket_name}/{preprocessed_key}"
+        )
 
     except Exception as e:
-        print(f"❌ Error during preprocessing: {e}")
+        logging.error(f"Error during preprocessing: {e}")
+        raise
