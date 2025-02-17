@@ -40,7 +40,9 @@ def train_svd_model():
     print("🚀 Training SVD model...")
 
     # Create user-movie matrix
-    user_movie_matrix = data.pivot(index="userId", columns="movieId", values="rating").fillna(0)
+    user_movie_matrix = data.pivot(
+        index="userId", columns="movieId", values="rating"
+    ).fillna(0)
 
     # Convert to sparse matrix format (CSR)
     user_movie_sparse = csr_matrix(user_movie_matrix.values)
@@ -60,10 +62,14 @@ def train_svd_model():
     predicted_ratings = np.dot(np.dot(U, sigma), Vt) + user_ratings_mean.reshape(-1, 1)
 
     # Convert back to DataFrame
-    predicted_df = pd.DataFrame(predicted_ratings, index=user_movie_matrix.index, columns=user_movie_matrix.columns)
-    
+    predicted_df = pd.DataFrame(
+        predicted_ratings,
+        index=user_movie_matrix.index,
+        columns=user_movie_matrix.columns,
+    )
+
     print("✅ Model training complete!")
-    
+
     # Save trained model
     save_model(predicted_df)
 
@@ -77,11 +83,12 @@ def save_model(model):
     model_path = "models/svd_recommender.pkl"
 
     import os
+
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
     with open(model_path, "wb") as model_file:
         pickle.dump(model, model_file)
-    
+
     print(f"💾 Model saved to {model_path}")
 
 
@@ -109,10 +116,14 @@ def recommend_movies(user_id=1, n_recommendations=5):
     user_rated_movies = data[data["userId"] == user_id]["movieId"].tolist()
 
     # Filter out already watched movies
-    unseen_movies = user_predictions[~user_predictions.index.isin(user_rated_movies)].head(n_recommendations)
+    unseen_movies = user_predictions[
+        ~user_predictions.index.isin(user_rated_movies)
+    ].head(n_recommendations)
 
     # Get movie titles
-    recommended_movies = data[data["movieId"].isin(unseen_movies.index)][["movieId", "title"]].drop_duplicates()
+    recommended_movies = data[data["movieId"].isin(unseen_movies.index)][
+        ["movieId", "title"]
+    ].drop_duplicates()
 
     print("🎬 Top recommended movies:")
     for index, row in recommended_movies.iterrows():
