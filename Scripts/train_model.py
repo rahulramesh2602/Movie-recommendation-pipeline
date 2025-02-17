@@ -1,10 +1,18 @@
+# Importing all the libraries
 import pandas as pd
 import numpy as np
 import pickle
 import boto3
 import io
+import logging
+import os
 from scipy.sparse.linalg import svds
 from scipy.sparse import csr_matrix
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Define S3 bucket and file path
 BUCKET_NAME = "rahul-movie-recommendation-data"  # Replace with your S3 bucket name
@@ -14,30 +22,43 @@ PREPROCESSED_DATA_KEY = "processed/preprocessed_data.csv"  # S3 key for processe
 def load_data_from_s3():
     """
     Loads the preprocessed dataset from S3.
+
+    Returns:
+        pd.DataFrame: The preprocessed dataset.
+
+    Raises:
+        Exception: If the dataset cannot be downloaded.
     """
-    print(f"🔄 Downloading {PREPROCESSED_DATA_KEY} from S3...")
+    logging.info(f"Downloading {PREPROCESSED_DATA_KEY} from S3...")
     s3 = boto3.client("s3")
 
     try:
         obj = s3.get_object(Bucket=BUCKET_NAME, Key=PREPROCESSED_DATA_KEY)
         df = pd.read_csv(io.BytesIO(obj["Body"].read()))
-        print("✅ Successfully downloaded preprocessed data from S3.")
+        logging.info("Successfully downloaded preprocessed data from S3.")
         return df
     except Exception as e:
-        print(f"❌ Error: Could not download preprocessed data from S3: {e}")
-        return None
+        logging.error(f"Error: Could not download preprocessed data from S3: {e}")
+        raise
 
 
 def train_svd_model():
     """
     Trains an SVD recommendation model using Scipy's `svds`.
+
+    Returns:
+        pd.DataFrame: The predicted ratings matrix.
+
+    Raises:
+        Exception: If the training process fails.
     """
-    data = load_data_from_s3()
-    if data is None:
-        print("❌ Exiting: Failed to load data from S3.")
+    try:
+        data = load_data_from_s3()
+    except Exception:
+        logging.error("Exiting: Failed to load data from S3.")
         return
 
-    print("🚀 Training SVD model...")
+    logging.info("Training SVD model...")
 
     # Create user-movie matrix
     user_movie_matrix = data.pivot(
@@ -55,8 +76,14 @@ def train_svd_model():
     normalized_sparse = csr_matrix(normalized_matrix)
 
     # Perform SVD (k is the number of latent factors)
-    U, sigma, Vt = svds(normalized_sparse, k=min(50, normalized_sparse.shape[1] - 1))
-    sigma = np.diag(sigma)
+    try:
+        U, sigma, Vt = svds(
+            normalized_sparse, k=min(50, normalized_sparse.shape[1] - 1)
+        )
+        sigma = np.diag(sigma)
+    except Exception as e:
+        logging.error(f"Error during SVD computation: {e}")
+        return
 
     # Reconstruct the ratings matrix
     predicted_ratings = np.dot(np.dot(U, sigma), Vt) + user_ratings_mean.reshape(-1, 1)
@@ -68,7 +95,7 @@ def train_svd_model():
         columns=user_movie_matrix.columns,
     )
 
-    print("✅ Model training complete!")
+    logging.info("Model training complete. Saving model...")
 
     # Save trained model
     save_model(predicted_df)
@@ -79,38 +106,64 @@ def train_svd_model():
 def save_model(model):
     """
     Saves the trained SVD model for future use.
+
+    Args:
+        model (pd.DataFrame): The trained recommendation model.
+
+    Raises:
+        Exception: If the model cannot be saved.
     """
-    model_path = "models/svd_recommender.pkl"
+    model_path = "Scripts/models/svd_recommender.pkl"
 
-    import os
-
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-
-    with open(model_path, "wb") as model_file:
-        pickle.dump(model, model_file)
-
-    print(f"💾 Model saved to {model_path}")
+    try:
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        with open(model_path, "wb") as model_file:
+            pickle.dump(model, model_file)
+        logging.info(f"Model saved to {model_path}")
+    except Exception as e:
+        logging.error(f"Error saving model: {e}")
+        raise
 
 
 def recommend_movies(user_id=1, n_recommendations=5):
     """
-    Generates top movie recommendations for a given user using SVD predictions.
+    Generates top movie recommendations for a given user.
+
+    Args:
+        user_id (int, optional): The user ID for recommendations. Defaults to 1.
+        n_recommendations (int, optional): Number of movies to recommend. Defaults to 5.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing recommended movies.
+
+    Raises:
+        Exception: If the recommendation process fails.
     """
-    print(f"🔎 Generating recommendations for User {user_id}...")
+
+    logging.info(f"Generating recommendations for User {user_id}...")
 
     # Load the trained model
-    model_path = "models/svd_recommender.pkl"
-    with open(model_path, "rb") as model_file:
-        predicted_df = pickle.load(model_file)
+    model_path = "Scripts/models/svd_recommender.pkl"
+    try:
+        with open(model_path, "rb") as model_file:
+            predicted_df = pickle.load(model_file)
+    except Exception as e:
+        logging.error(f"Error loading trained model: {e}")
+        return
 
     # Load dataset again (as we need movie titles)
-    data = load_data_from_s3()
-    if data is None:
-        print("❌ Error: Could not load preprocessed data for recommendations.")
+    try:
+        data = load_data_from_s3()
+    except Exception:
+        logging.error("Error: Could not load preprocessed data for recommendations.")
         return
 
     # Get predicted ratings for the user
-    user_predictions = predicted_df.loc[user_id].sort_values(ascending=False)
+    try:
+        user_predictions = predicted_df.loc[user_id].sort_values(ascending=False)
+    except KeyError:
+        logging.error(f"User ID {user_id} not found in the dataset.")
+        return
 
     # Get movies the user has already rated
     user_rated_movies = data[data["userId"] == user_id]["movieId"].tolist()
@@ -125,8 +178,8 @@ def recommend_movies(user_id=1, n_recommendations=5):
         ["movieId", "title"]
     ].drop_duplicates()
 
-    print("🎬 Top recommended movies:")
+    logging.info("Top recommended movies:")
     for index, row in recommended_movies.iterrows():
-        print(f"🎥 {row['title']} (Movie ID: {row['movieId']})")
+        logging.info(f"{row['title']} (Movie ID: {row['movieId']})")
 
     return recommended_movies

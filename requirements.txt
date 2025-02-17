@@ -16,6 +16,9 @@ pickle5  # Model serialization
 # AWS & Data Handling
 s3fs  # Enables Pandas to read/write from S3
 
-# JSON & Database Support (Optional but Recommended)
+# Logging & Error Handling
+loguru
+
+# Database & JSON Support (Optional but Recommended)
 sqlalchemy
 jsonschema
