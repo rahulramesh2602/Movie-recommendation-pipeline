@@ -1,3 +1,21 @@
+# Core Python Packages
 boto3
-pandas 
+pandas
+numpy
+scipy
 scikit-learn
+pyarrow
+
+# Apache Airflow (Standalone Mode)
+apache-airflow
+apache-airflow-providers-amazon
+
+# Machine Learning & Recommendation System
+pickle5  # Model serialization
+
+# AWS & Data Handling
+s3fs  # Enables Pandas to read/write from S3
+
+# JSON & Database Support (Optional but Recommended)
+sqlalchemy
+jsonschema
