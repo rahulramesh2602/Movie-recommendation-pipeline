@@ -1,105 +1,115 @@
----
+### **🎬 Movie Recommendation Pipeline | Modern Data Engineering AWS Project**  
 
-### **📄 README.md**
-```markdown
-# 🎬 Movie Recommendation Pipeline with Apache Airflow
+## **📌 Introduction**  
+The goal of this project is to **build an end-to-end automated movie recommendation system** using **Apache Airflow** and **AWS**. The system ingests raw movie rating data, preprocesses it, trains a recommendation model, and generates personalized movie suggestions.  
 
-## 📌 Overview
-This project builds an **end-to-end movie recommendation pipeline** using **Apache Airflow** and **AWS S3**. The pipeline automates:
-1. **Uploading Raw Movie & Ratings Data** to S3.
-2. **Preprocessing Data** (Merging & Cleaning) and storing it in S3.
-3. **Training a Recommendation Model** using Singular Value Decomposition (SVD).
-4. **Generating Movie Recommendations** based on user preferences.
+This project follows a **modern data engineering approach**, leveraging tools such as **AWS S3, Apache Airflow, Python, Scikit-learn, and Boto3** to build a scalable and automated pipeline.  
 
 ---
-## 🚀 Project Architecture
+
+## **🚀 Tools & Technologies Used**
+- **Amazon S3** – Storage for raw and preprocessed datasets  
+- **Apache Airflow** – Orchestration of the data pipeline  
+- **Python** – Data processing and machine learning  
+- **Scikit-Learn & SciPy** – Collaborative filtering using Singular Value Decomposition (SVD)  
+- **Pandas & NumPy** – Data transformation and manipulation  
+- **Boto3** – Interaction with AWS services  
+- **Airflow XComs & Logs** – Task communication and monitoring  
+
+---
+
+## **📌 Project Workflow**
 ```
-                     +--------------------------+
-                     |  Dataset (movies.csv, ratings.csv) |
-                     +--------------------------+
-                                  |
-                                  v
-        +--------------------------------+
-        | Upload to S3 (Raw Data)        |
-        | Task: `upload_to_s3.py`        |
-        +--------------------------------+
-                                  |
-                                  v
-        +--------------------------------+
-        | Preprocess Data (Merge & Clean)|
-        | Task: `preprocess_data.py`     |
-        +--------------------------------+
-                                  |
-                                  v
-        +--------------------------------+
-        | Train SVD Model (Collaborative)|
-        | Task: `train_model.py`         |
-        +--------------------------------+
-                                  |
-                                  v
-        +--------------------------------+
-        | Generate Movie Recommendations |
-        | Task: `recommend_movies`       |
-        +--------------------------------+
-
+                 +--------------------------+
+                 |  Dataset (movies.csv, ratings.csv) |
+                 +--------------------------+
+                                |
+                                v
+    +---------------------------------------------------+
+    | Task 1: Upload Raw Data to S3                     |
+    | Script: `upload_to_s3.py`                         |
+    +---------------------------------------------------+
+                                |
+                                v
+    +---------------------------------------------------+
+    | Task 2: Preprocess Data (Merge & Clean)           |
+    | Script: `preprocess_data.py`                      |
+    | - Downloads raw data from S3                      |
+    | - Merges ratings & movie metadata                 |
+    | - Uploads processed data back to S3               |
+    +---------------------------------------------------+
+                                |
+                                v
+    +---------------------------------------------------+
+    | Task 3: Train SVD Recommendation Model           |
+    | Script: `train_model.py`                         |
+    | - Downloads preprocessed data from S3            |
+    | - Trains SVD-based collaborative filtering model |
+    | - Saves model (`svd_recommender.pkl`)            |
+    +---------------------------------------------------+
+                                |
+                                v
+    +---------------------------------------------------+
+    | Task 4: Generate Movie Recommendations           |
+    | Script: `recommend_movies.py`                    |
+    | - Loads trained model                             |
+    | - Predicts top `n` movies for a given user       |
+    | - Logs recommendations & stores in XCom          |
+    +---------------------------------------------------+
 ```
----
-## 🛠️ Installation & Setup
 
+---
+
+## **📌 Pipeline Implementation in Apache Airflow**
+The entire workflow is automated using **Apache Airflow**, ensuring **end-to-end orchestration** of the recommendation pipeline.  
+
+**DAG Structure (`movie_recommendation_pipeline.py`)**
+1️⃣ `upload_to_s3.py` – Uploads raw `movies.csv` & `ratings.csv` to S3  
+2️⃣ `preprocess_data.py` – Merges, cleans data & uploads `preprocessed_data.csv` to S3  
+3️⃣ `train_model.py` – Downloads preprocessed data & trains SVD model  
+4️⃣ `recommend_movies.py` – Generates movie recommendations & stores results  
+
+---
+
+## **📌 Installation & Setup**
 ### **1️⃣ Clone the Repository**
 ```sh
 git clone https://github.com/yourusername/Movie-recommendation-pipeline.git
 cd Movie-recommendation-pipeline
 ```
 
-### **2️⃣ Create a Virtual Environment**
+### **2️⃣ Create a Virtual Environment & Install Dependencies**
 ```sh
 python3 -m venv movie_rec
 source movie_rec/bin/activate  # Mac/Linux
 movie_rec\Scripts\activate     # Windows
-```
-
-### **3️⃣ Install Dependencies**
-```sh
 pip install -r requirements.txt
 ```
 
-### **4️⃣ Set Up Apache Airflow**
+### **3️⃣ Configure AWS Credentials**
+Ensure your AWS CLI is configured to interact with S3:
+```sh
+aws configure
+```
+
+### **4️⃣ Start Apache Airflow**
 ```sh
 export AIRFLOW_HOME=~/airflow
-pip install apache-airflow
 airflow db init
 airflow webserver --port 8080 &
 airflow scheduler &
 ```
 
-### **5️⃣ Configure AWS Credentials for S3 Access**
-Ensure you have **AWS CLI configured** with IAM permissions to access S3:
+### **5️⃣ Deploy the Airflow DAG**
+Move the DAG to the Airflow DAGs directory:
 ```sh
-aws configure
+mv movie_recommendation_pipeline.py ~/airflow/dags/
+airflow dags reload
 ```
-Enter:
-- AWS Access Key ID
-- AWS Secret Access Key
-- Default region (e.g., `us-east-1`)
 
 ---
-## 🎯 How the Pipeline Works
-### **1️⃣ Upload Data to S3**
-- The script `upload_to_s3.py` **uploads raw datasets** (`movies.csv`, `ratings.csv`) to an S3 bucket.
 
-### **2️⃣ Preprocess Data**
-- `preprocess_data.py` **downloads raw data from S3, merges, and cleans it**, and then **uploads processed data** back to S3.
-
-### **3️⃣ Train the Recommendation Model**
-- `train_model.py` **downloads preprocessed data** and trains an **SVD (Singular Value Decomposition) model**.
-- The model is saved as `models/svd_recommender.pkl` inside the **Scripts folder**.
-
-### **4️⃣ Generate Movie Recommendations**
-- `recommend_movies.py` loads the trained model from **`Scripts/models/`** and **suggests movies** for a user.
-
----
-## 🔥 Running the Pipeline in Airflow
+## **📌 Running the Pipeline in Airflow**
 ### **1️⃣ Start Airflow**
 ```sh
 airflow webserver --port 8080 &
@@ -113,7 +123,8 @@ airflow scheduler &
 3. Click **Trigger DAG** ▶️ to start the pipeline.
 
 ---
-## 📌 File Structure
+
+## **📌 File Structure**
 ```
 ├── Dataset/
 │   ├── movies.csv
@@ -123,11 +134,12 @@ airflow scheduler &
 │   ├── upload_to_s3.py
 │   ├── preprocess_data.py
 │   ├── train_model.py
+│   ├── recommend_movies.py
 │   ├── models/                    # Trained model stored here
 │   │   ├── svd_recommender.pkl
 │
 ├── Dags/
-│   ├── movie_recommendation.py  # Airflow DAG file
+│   ├── movie_recommendation_pipeline.py  # Airflow DAG file
 │
 ├── .flake8
 ├── .gitignore
@@ -136,7 +148,8 @@ airflow scheduler &
 ```
 
 ---
-## 🔍 Example Output
+
+## **📌 Example Output**
 ```sh
 🔄 Loading datasets...
 ✅ Data preprocessing complete! 100836 ratings loaded.
@@ -153,12 +166,30 @@ airflow scheduler &
 ```
 
 ---
-## 🔮 Future Enhancements
-✅ **Enable Real-Time User Input** for Personalized Recommendations  
-✅ **Deploy the Model as a REST API** (Using Flask or FastAPI)  
-✅ **Integrate AWS Lambda & DynamoDB** for Scalable Data Storage  
+
+## **📌 Future Enhancements**
+✅ **Enable Real-Time User Input for Personalized Recommendations**  
+✅ **Deploy the Model as a REST API (Using Flask or FastAPI)**  
+✅ **Store Predictions in a Database (PostgreSQL, DynamoDB, or S3 JSON)**  
+✅ **Integrate AWS Lambda & DynamoDB for Scalable Data Storage**  
 ✅ **Visualize Insights in a Web Dashboard**  
 
 ---
-## 🤝 Contributing
+
+## **📜 License**
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
+
+---
+
+## **🤝 Contributing**
 Want to improve the project? Feel free to open **Issues** & **Pull Requests**!
+
+---
+
+### **🚀 Next Steps**
+🔹 **Add this `README.md` to your repository.**  
+🔹 **Test your pipeline & monitor it in Apache Airflow.**  
+🔹 **(Optional) Deploy as a REST API for real-time recommendations.**  
+
+🔥 **Now your project is well-documented & production-ready!** 🚀  
+Let me know if you need any refinements! 😊
