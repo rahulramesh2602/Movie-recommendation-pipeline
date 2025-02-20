@@ -195,12 +195,4 @@ This project is licensed under the **MIT License** – see the [LICENSE](LICENSE
 
 ## **🤝 Contributing**
 Want to improve the project? Feel free to open **Issues** & **Pull Requests**!
-
 ---
-
-### **🚀 Next Steps**
-🔹 **Add this `README.md` to your repository.**  
-🔹 **Test your pipeline & monitor it in Apache Airflow.**  
-🔹 **(Optional) Deploy as a REST API for real-time recommendations.**  
-
-🔥 **Now your project is 100% accurate & production-ready!** 🚀 
