@@ -203,17 +203,4 @@ Want to improve the project? Feel free to open **Issues** & **Pull Requests**!
 🔹 **Test your pipeline & monitor it in Apache Airflow.**  
 🔹 **(Optional) Deploy as a REST API for real-time recommendations.**  
 
-🔥 **Now your project is 100% accurate & production-ready!** 🚀  
-Let me know if you need further refinements! 😊
-``` 
-
----
-
-### **🔹 Summary of Updates**
-✅ **Clarified Airflow setup on AWS EC2 (Standalone Mode)**  
-✅ **Referenced the YouTube tutorial for EC2 & Airflow setup**  
-✅ **Updated the `models/` folder path inside `Scripts/`**  
-✅ **Ensured the correct DAG deployment steps**  
-
-🚀 **Your README is now perfectly aligned with your actual setup!**  
-Let me know if you need any final tweaks! 😊
+🔥 **Now your project is 100% accurate & production-ready!** 🚀 
